@@ -28,27 +28,31 @@ std::expected<void, std::string> run_command(const T& command) {
     return {};
 }
 
+void print_error(const std::string& message) {
+    std::print(stderr, "Error: {}\n", message);
+}
+
 void display_system_info() {
     std::print("\nSystem Information:\n");
     std::print("-------------------\n");
 
 #ifdef _WIN32
     if (auto result = run_command("systeminfo"); !result) {
-        std::print(stderr, "Error fetching system info: {}\n", result.error());
+        print_error(result.error());
     }
 #elif __APPLE__
     if (auto result = run_command("df -h"); !result) {
-        std::print(stderr, "Error fetching disk info: {}\n", result.error());
+        print_error(result.error());
     }
     if (auto result = run_command("top -l 1 -s 0"); !result) {
-        std::print(stderr, "Error fetching system stats: {}\n", result.error());
+        print_error(result.error());
     }
 #elif __linux__
     if (auto result = run_command("df -h"); !result) {
-        std::print(stderr, "Error fetching disk info: {}\n", result.error());
+        print_error(result.error());
     }
     if (auto result = run_command("free -h"); !result) {
-        std::print(stderr, "Error fetching memory info: {}\n", result.error());
+        print_error(result.error());
     }
 #else
     std::print("Unsupported platform\n");
@@ -60,11 +64,11 @@ void check_updates_linux(const std::string& distro, const DistroMap& check_comma
     if (auto it = check_commands.find(distro); it != check_commands.end()) {
         std::print("Checking for updates using {}...\n", it->second);
         if (auto result = run_command(it->second); !result) {
-            std::print(stderr, "Error checking updates: {}\n", result.error());
+            print_error(result.error());
             std::exit(1);
         }
     } else {
-        std::print(stderr, "Unsupported distribution: {}\n", distro);
+        print_error("Unsupported distribution: " + distro);
         std::exit(1);
     }
 }
@@ -80,7 +84,7 @@ void backup_system_files() {
                 fs::copy(file, backup_dir + "/" + fs::path(file).filename().string(), fs::copy_options::overwrite_existing);
                 std::print("Backed up {} to {}\n", file, backup_dir);
             } catch (const fs::filesystem_error& e) {
-                std::print(stderr, "Error backing up {}: {}\n", file, e.what());
+                print_error(e.what());
                 std::exit(1);
             }
         } else {
@@ -94,11 +98,11 @@ void update_linux(const std::string& distro, const DistroMap& update_commands) {
     if (auto it = update_commands.find(distro); it != update_commands.end()) {
         std::print("Updating system using {}...\n", it->second);
         if (auto result = run_command(it->second); !result) {
-            std::print(stderr, "Error updating system: {}\n", result.error());
+            print_error(result.error());
             std::exit(1);
         }
     } else {
-        std::print(stderr, "Unsupported Linux distribution: {}\n", distro);
+        print_error("Unsupported Linux distribution: " + distro);
         std::exit(1);
     }
 }
@@ -106,7 +110,7 @@ void update_linux(const std::string& distro, const DistroMap& update_commands) {
 void update_macos() {
     std::print("Updating system using softwareupdate...\n");
     if (auto result = run_command("sudo softwareupdate --install --all"); !result) {
-        std::print(stderr, "Error updating macOS: {}\n", result.error());
+        print_error(result.error());
         std::exit(1);
     }
 }
@@ -114,7 +118,7 @@ void update_macos() {
 void update_windows() {
     std::print("Updating Windows system...\n");
     if (auto result = run_command("powershell Start-Process ms-settings:windowsupdate"); !result) {
-        std::print(stderr, "Error updating Windows: {}\n", result.error());
+        print_error(result.error());
         std::exit(1);
     }
 }
@@ -136,7 +140,7 @@ std::string detect_os() {
         }
         return "unknown_linux";
     } catch (const std::exception& e) {
-        std::print(stderr, "Could not determine Linux distribution.\n");
+        print_error("Could not determine Linux distribution.");
         std::exit(1);
     }
 #else
@@ -169,7 +173,7 @@ int main() {
             {"redhat", "sudo dnf check-update"},
             {"arch", "sudo pacman -Qu"},
             {"manjaro", "sudo pacman -Qu"},
-            {"opensuse", "sudo zypper list-updates"}
+            {"opensuse", "sudo zypper list-updates" }
         };
         check_updates_linux(os_type, check_commands);
 
