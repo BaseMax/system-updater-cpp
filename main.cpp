@@ -13,16 +13,14 @@
 
 namespace fs = std::filesystem;
 
-// Concept to constrain types that can be used as commands
 template <typename T>
 concept CommandLike = requires(T t) {
     { std::string(t) } -> std::convertible_to<std::string>;
 };
 
-// Generic function to run shell commands
 template <CommandLike T>
 std::expected<void, std::string> run_command(const T& command) {
-    std::string cmd = std::string(command); // Convert to std::string
+    std::string cmd = std::string(command);
     int result = std::system(cmd.c_str());
     if (result != 0) {
         return std::unexpected(std::format("Command failed with exit code: {}", result));
@@ -30,7 +28,6 @@ std::expected<void, std::string> run_command(const T& command) {
     return {};
 }
 
-// Display system information
 void display_system_info() {
     std::print("\nSystem Information:\n");
     std::print("-------------------\n");
@@ -58,7 +55,6 @@ void display_system_info() {
 #endif
 }
 
-// Check updates for Linux distributions
 template <typename DistroMap>
 void check_updates_linux(const std::string& distro, const DistroMap& check_commands) {
     if (auto it = check_commands.find(distro); it != check_commands.end()) {
@@ -73,16 +69,14 @@ void check_updates_linux(const std::string& distro, const DistroMap& check_comma
     }
 }
 
-// Backup critical system files
 void backup_system_files() {
     const std::string backup_dir = "/tmp/system_backup";
-    fs::create_directories(backup_dir); // Create the backup directory if it doesn't exist
+    fs::create_directories(backup_dir);
     const std::vector<std::string> critical_files = {"/etc/fstab", "/etc/hostname", "/etc/hosts", "/etc/passwd"};
 
     for (const auto& file : critical_files) {
         if (fs::exists(file)) {
             try {
-                // Overwrite the file if it already exists in the backup directory
                 fs::copy(file, backup_dir + "/" + fs::path(file).filename().string(), fs::copy_options::overwrite_existing);
                 std::print("Backed up {} to {}\n", file, backup_dir);
             } catch (const fs::filesystem_error& e) {
@@ -95,7 +89,6 @@ void backup_system_files() {
     }
 }
 
-// Update Linux distributions
 template <typename DistroMap>
 void update_linux(const std::string& distro, const DistroMap& update_commands) {
     if (auto it = update_commands.find(distro); it != update_commands.end()) {
@@ -110,7 +103,6 @@ void update_linux(const std::string& distro, const DistroMap& update_commands) {
     }
 }
 
-// Update macOS
 void update_macos() {
     std::print("Updating system using softwareupdate...\n");
     if (auto result = run_command("sudo softwareupdate --install --all"); !result) {
@@ -119,7 +111,6 @@ void update_macos() {
     }
 }
 
-// Update Windows
 void update_windows() {
     std::print("Updating Windows system...\n");
     if (auto result = run_command("powershell Start-Process ms-settings:windowsupdate"); !result) {
@@ -128,7 +119,6 @@ void update_windows() {
     }
 }
 
-// Detect the operating system
 std::string detect_os() {
 #ifdef _WIN32
     return "windows";
